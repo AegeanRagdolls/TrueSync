@@ -343,6 +343,12 @@ namespace TrueSync {
             }
         }
 
+
+        public TSVector centerOfMass
+        {
+            get { return tsCollider.Shape.geomCen; }
+            set { tsCollider.Shape.geomCen = value; }
+        }
     }
 
 }

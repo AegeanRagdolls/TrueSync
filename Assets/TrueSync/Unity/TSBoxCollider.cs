@@ -63,7 +63,7 @@ namespace TrueSync {
          *  @brief Create the internal shape used to represent a TSBoxCollider.
          **/
         public override Shape CreateShape() {
-			return new BoxShape(TSVector.Scale(size, lossyScale));
+            return new BoxShape(TSVector.Scale(size, lossyScale));
         }
 
         protected override void DrawGizmos() {
