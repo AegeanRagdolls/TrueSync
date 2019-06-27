@@ -226,7 +226,6 @@ namespace TrueSync {
             //} else {
             //    communicator = new PhotonTrueSyncCommunicator(PhotonNetwork.networkingPeer);
             //}
-            Debug.LogWarning("You are not connected to Photon. TrueSync will start in offline mode.");
 
             TrueSyncConfig activeConfig = ActiveConfig;
 

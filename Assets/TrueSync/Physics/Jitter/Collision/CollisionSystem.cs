@@ -23,7 +23,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 #endregion
 
-namespace TrueSync.Physics3D {
+namespace TrueSync.Physics3D
+{
 
     /// <summary>
     /// Entity of the Broadphase system. (Either a Softbody or a RigidBody)
@@ -31,7 +32,7 @@ namespace TrueSync.Physics3D {
     public interface IBroadphaseEntity
     {
         TSBBox BoundingBox { get; }
-        bool IsStaticOrInactive{ get; }
+        bool IsStaticOrInactive { get; }
 
         bool IsStaticNonKinematic { get; }
     }
@@ -47,8 +48,8 @@ namespace TrueSync.Physics3D {
     /// <param name="penetration">Estimated penetration depth of the collision.</param>
     /// <seealso cref="CollisionSystem.Detect(bool)"/>
     /// <seealso cref="CollisionSystem.Detect(RigidBody,RigidBody)"/>
-    public delegate void CollisionDetectedHandler(RigidBody body1,RigidBody body2, 
-                    TSVector point1, TSVector point2, TSVector normal,FP penetration);
+    public delegate void CollisionDetectedHandler(RigidBody body1, RigidBody body2,
+                    TSVector point1, TSVector point2, TSVector normal, FP penetration);
 
     /// <summary>
     /// A delegate to inform the user that a pair of bodies passed the broadsphase
@@ -68,8 +69,8 @@ namespace TrueSync.Physics3D {
     /// <param name="body2">The second body.</param>
     /// <returns>If false is returned the collision information is dropped. The CollisionDetectedHandler
     /// is never called.</returns>
-    public delegate bool PassedNarrowphaseHandler(RigidBody body1,RigidBody body2, 
-                    ref TSVector point, ref TSVector normal,FP penetration);
+    public delegate bool PassedNarrowphaseHandler(RigidBody body1, RigidBody body2,
+                    ref TSVector point, ref TSVector normal, FP penetration);
 
     /// <summary>
     /// A delegate for raycasting.
@@ -79,7 +80,7 @@ namespace TrueSync.Physics3D {
     /// <param name="fraction">The fraction which gives information where at the 
     /// ray the collision occured. The hitPoint is calculated by: rayStart+friction*direction.</param>
     /// <returns>If false is returned the collision information is dropped.</returns>
-    public delegate bool RaycastCallback(RigidBody body,TSVector normal, FP fraction);
+    public delegate bool RaycastCallback(RigidBody body, TSVector normal, FP fraction);
 
     /// <summary>
     /// CollisionSystem. Used by the world class to detect all collisions. 
@@ -139,17 +140,22 @@ namespace TrueSync.Physics3D {
         /// <summary>
         /// Gets called when broad- and narrow phase collision were positive.
         /// </summary>
-        public event CollisionDetectedHandler CollisionDetected {
-            add {
+        public event CollisionDetectedHandler CollisionDetected
+        {
+            add
+            {
                 collisionDetected += value;
             }
-            remove {
+            remove
+            {
                 collisionDetected -= value;
             }
         }
 
         private bool speculativeContacts = false;
-        public bool EnableSpeculativeContacts { get { return speculativeContacts; }
+        public bool EnableSpeculativeContacts
+        {
+            get { return speculativeContacts; }
             set { speculativeContacts = value; }
         }
 
@@ -169,8 +175,8 @@ namespace TrueSync.Physics3D {
         /// fixes unwanted behavior on triangle transitions.
         /// </summary>
         public bool UseTriangleMeshNormal { get { return useTriangleMeshNormal; } set { useTriangleMeshNormal = value; } }
-        
-                /// <summary>
+
+        /// <summary>
         /// If set to true the collision system uses the normal of
         /// the current colliding triangle as collision normal. This
         /// fixes unwanted behavior on triangle transitions.
@@ -191,8 +197,8 @@ namespace TrueSync.Physics3D {
             RigidBody rigidBody2 = entity2 as RigidBody;
 
             if (rigidBody1 != null)
-            { 
-                if(rigidBody2 != null)
+            {
+                if (rigidBody2 != null)
                 {
                     // most common
                     DetectRigidRigid(rigidBody1, rigidBody2);
@@ -200,22 +206,22 @@ namespace TrueSync.Physics3D {
                 else
                 {
                     SoftBody softBody2 = entity2 as SoftBody;
-                    if(softBody2 != null) DetectSoftRigid(rigidBody1,softBody2);
+                    if (softBody2 != null) DetectSoftRigid(rigidBody1, softBody2);
                 }
             }
             else
             {
                 SoftBody softBody1 = entity1 as SoftBody;
 
-                if(rigidBody2 != null)
+                if (rigidBody2 != null)
                 {
-                    if(softBody1 != null) DetectSoftRigid(rigidBody2,softBody1);
+                    if (softBody1 != null) DetectSoftRigid(rigidBody2, softBody1);
                 }
                 else
                 {
                     // less common
                     SoftBody softBody2 = entity2 as SoftBody;
-                    if(softBody1 != null && softBody2 != null) DetectSoftSoft(softBody1,softBody2);
+                    if (softBody1 != null && softBody2 != null) DetectSoftSoft(softBody1, softBody2);
                 }
             }
         }
@@ -303,7 +309,7 @@ namespace TrueSync.Physics3D {
 
                 }
 
-				//UnityEngine.Debug.Log("-----------------------: " + normal);
+                //UnityEngine.Debug.Log("-----------------------: " + normal);
             }
             else if (b1IsMulti && b2IsMulti)
             {
@@ -489,7 +495,7 @@ namespace TrueSync.Physics3D {
                 }
 
                 detected.Clear(); potentialTriangleLists.GiveBack(detected);
-                ms.ReturnWorkingClone();      
+                ms.ReturnWorkingClone();
             }
             else
             {
@@ -604,6 +610,8 @@ namespace TrueSync.Physics3D {
         public abstract bool Raycast(RigidBody body, TSVector rayOrigin, TSVector rayDirection, out TSVector normal, out FP fraction);
 
 
+        public virtual void RaycastAll(TSVector rayOrigin, TSVector rayDirection, RaycastCallback raycast, int layerMask) { throw new NotImplementedException(); }
+
         /// <summary>
         /// Checks the state of two bodies.
         /// </summary>
@@ -613,10 +621,11 @@ namespace TrueSync.Physics3D {
         public bool CheckBothStaticOrInactive(IBroadphaseEntity entity1, IBroadphaseEntity entity2)
         {
             return (entity1.IsStaticOrInactive && entity2.IsStaticOrInactive);
-       }
+        }
 
-        public bool CheckBothStaticNonKinematic(IBroadphaseEntity entity1, IBroadphaseEntity entity2) {
-            return !world.CanBodiesCollide((RigidBody) entity1, (RigidBody) entity2);
+        public bool CheckBothStaticNonKinematic(IBroadphaseEntity entity1, IBroadphaseEntity entity2)
+        {
+            return !world.CanBodiesCollide((RigidBody)entity1, (RigidBody)entity2);
             //return (entity1.IsStaticNonKinematic && entity2.IsStaticNonKinematic);
         }
 
@@ -645,7 +654,7 @@ namespace TrueSync.Physics3D {
         /// should be dropped</returns>
         public bool RaisePassedBroadphase(IBroadphaseEntity entity1, IBroadphaseEntity entity2)
         {
-			if (this.PassedBroadphase != null)
+            if (this.PassedBroadphase != null)
                 return this.PassedBroadphase(entity1, entity2);
 
             // allow this detection by default
