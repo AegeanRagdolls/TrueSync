@@ -1,50 +1,82 @@
 ﻿using System;
 using UnityEngine;
 using System.Collections;
-
-
+using TrueSync;
 
 public class ArcadeCar : MonoBehaviour
 {
 
-
+    /// <summary>
+    /// 左车轮索引
+    /// </summary>
     const int WHEEL_LEFT_INDEX = 0;
+    /// <summary>
+    /// 右车轮索引
+    /// </summary>
     const int WHEEL_RIGHT_INDEX = 1;
 
+    /// <summary>
+    /// 车轮宽度
+    /// </summary>
     const float wheelWidth = 0.085f;
 
-
+    /// <summary>
+    /// 车轮数据
+    /// </summary>
     public class WheelData
     {
+        /// <summary>
+        /// 车轮是否在地面
+        /// </summary>
         // is wheel touched ground or not ?
         [HideInInspector]
         public bool isOnGround = false;
 
+        /// <summary>
+        /// 车轮接触点
+        /// </summary>
         // wheel ground touch point
         [HideInInspector]
         public RaycastHit touchPoint = new RaycastHit();
 
+        /// <summary>
+        /// 阿克曼转向校正
+        /// </summary>
         // real yaw, after Ackermann steering correction
         [HideInInspector]
         public float yawRad = 0.0f;
 
+        /// <summary>
+        /// 可视化旋转
+        /// </summary>
         // visual rotation
         [HideInInspector]
         public float visualRotationRad = 0.0f;
 
+        /// <summary>
+        /// 悬挂压力
+        /// </summary>
         // suspension compression
         [HideInInspector]
         public float compression = 0.0f;
 
+        /// <summary>
+        /// 更新之前的悬挂压力
+        /// </summary>
         // suspension compression on previous update
         [HideInInspector]
         public float compressionPrev = 0.0f;
 
+        /// <summary>
+        /// 日志文本
+        /// </summary>
         [HideInInspector]
         public string debugText = "-";
     }
 
-
+    /// <summary>
+    /// 车轴
+    /// </summary>
     [Serializable]
     public class Axle
     {
@@ -202,6 +234,8 @@ public class ArcadeCar : MonoBehaviour
 
     // x - speed in km/h
     // y - Downforce percentage
+
+    //Y -下压力(百分比0%..100%)。X -车速(公里/小时)
     [Tooltip("Y - Downforce (percentage 0%..100%). X - Vehicle speed (km/h)")]
     public AnimationCurve downForceCurve = AnimationCurve.Linear(0.0f, 0.0f, 200.0f, 100.0f);
 
@@ -222,7 +256,7 @@ public class ArcadeCar : MonoBehaviour
     bool isAcceleration = false;
     bool isReverseAcceleration = false;
     float accelerationForceMagnitude = 0.0f;
-    Rigidbody rb = null;
+    TSRigidBody rb = null;
 
     // UI style for debug render
     static GUIStyle style = new GUIStyle();
@@ -240,8 +274,8 @@ public class ArcadeCar : MonoBehaviour
         transform.position = position;
         transform.rotation = Quaternion.Euler(new Vector3(0.0f, yaw, 0.0f));
 
-        rb.velocity = new Vector3(0f, 0f, 0f);
-        rb.angularVelocity = new Vector3(0f, 0f, 0f);
+        rb.velocity = new TSVector(0f, 0f, 0f);
+        rb.angularVelocity = new TSVector(0f, 0f, 0f);
 
         for (int axleIndex = 0; axleIndex < axles.Length; axleIndex++)
         {
@@ -254,23 +288,22 @@ public class ArcadeCar : MonoBehaviour
     void Start()
     {
 
-
         style.normal.textColor = Color.red;
 
-        rb = GetComponent<Rigidbody>();
-        rb.centerOfMass = centerOfMass;
+        rb = GetComponent<TSRigidBody>();
+        rb.centerOfMass = centerOfMass.ToTSVector();
     }
 
     void OnValidate()
     {
         //HACK: to apply steering in editor
-        if (rb == null)
-        {
-            rb = GetComponent<Rigidbody>();
-        }
+        //if (rb == null)
+        //{
+        //    rb = GetComponent<TSRigidBody>();
+        //}
 
-        ApplyVisual();
-        CalculateAckermannSteering();
+        //ApplyVisual();
+        //CalculateAckermannSteering();
     }
 
     float GetHandBrakeK()
@@ -284,7 +317,7 @@ public class ArcadeCar : MonoBehaviour
     float GetSteeringHandBrakeK()
     {
         // 0.4 - pressed
-        // 1.0 - not pressed
+        // 1.0 - not pressedf
         float steeringK = Mathf.Clamp01(0.4f + (1.0f - GetHandBrakeK()) * 0.6f);
         return steeringK;
     }
@@ -293,7 +326,7 @@ public class ArcadeCar : MonoBehaviour
     {
         float speedKmH = speedMetersPerSec * 3.6f;
 
-        float mass = rb.mass;
+        float mass = rb.mass.AsFloat();
 
         int numKeys = accCurve.length;
         if (numKeys == 0)
@@ -371,7 +404,7 @@ public class ArcadeCar : MonoBehaviour
 
     public float GetSpeed()
     {
-        Vector3 velocity = rb.velocity;
+        Vector3 velocity = rb.velocity.ToVector();
 
         Vector3 wsForward = rb.transform.rotation * Vector3.forward;
         float vProj = Vector3.Dot(velocity, wsForward);
@@ -639,20 +672,20 @@ public class ArcadeCar : MonoBehaviour
             Vector3 axis = Vector3.Cross(carUp, worldUp);
             //axis.Normalize ();
 
-            float mass = rb.mass;
+            float mass = rb.mass.AsFloat();
 
             // angular velocity damping
-            Vector3 angVel = rb.angularVelocity;
+            Vector3 angVel = rb.angularVelocity.ToVector();
 
             Vector3 angVelDamping = angVel;
             angVelDamping.y = 0.0f;
             angVelDamping = angVelDamping * Mathf.Clamp01(flightStabilizationDamping * Time.fixedDeltaTime);
 
             //Debug.Log(string.Format("Ang {0}, Damping {1}", angVel, angVelDamping));
-            rb.angularVelocity = angVel - angVelDamping;
+            rb.angularVelocity = (angVel - angVelDamping).ToTSVector();
 
             // in flight roll stabilization
-            rb.AddTorque(axis * flightStabilizationForce * mass);
+            rb.AddTorque((axis * flightStabilizationForce * mass).ToTSVector());
         }
         else
         {
@@ -664,9 +697,9 @@ public class ArcadeCar : MonoBehaviour
 
             float downForceAmount = downForceCurve.Evaluate(speedKmH) / 100.0f;
 
-            float mass = rb.mass;
+            float mass = rb.mass.AsFloat();
 
-            rb.AddForce(carDown * mass * downForceAmount * downForce);
+            rb.AddForce((carDown * mass * downForceAmount * downForce).ToTSVector());
 
             //Debug.Log(string.Format("{0} downforce", downForceAmount * downForce));
         }
@@ -754,7 +787,7 @@ public class ArcadeCar : MonoBehaviour
 
     void AddForceAtPosition(Vector3 force, Vector3 position)
     {
-        rb.AddForceAtPosition(force, position);
+        rb.AddForceAtPosition(force.ToTSVector(), position.ToTSVector());
         //Debug.DrawRay(position, force, Color.magenta);
     }
 
@@ -807,8 +840,10 @@ public class ArcadeCar : MonoBehaviour
 
             UnityEditor.Handles.DrawWireDisc(wsTo + wsAxle * wheelWidth, wsAxle, axle.radius);
             UnityEditor.Handles.DrawWireDisc(wsTo - wsAxle * wheelWidth, wsAxle, axle.radius);
+
+
         }
-        
+
     }
 
 
@@ -825,6 +860,13 @@ public class ArcadeCar : MonoBehaviour
     }
 #endif
 
+    /// <summary>
+    /// 射线
+    /// </summary>
+    /// <param name="ray"></param>
+    /// <param name="maxDistance"></param>
+    /// <param name="nearestHit"></param>
+    /// <returns></returns>
     bool RayCast(Ray ray, float maxDistance, ref RaycastHit nearestHit)
     {
         int numHits = Physics.RaycastNonAlloc(wheelRay, wheelRayHits, maxDistance);
@@ -867,7 +909,16 @@ public class ArcadeCar : MonoBehaviour
         return (nearestHit.distance <= maxDistance);
     }
 
-
+    /// <summary>
+    /// 计算车轮力
+    /// </summary>
+    /// <param name="axle"></param>
+    /// <param name="wsDownDirection"></param>
+    /// <param name="wheelData"></param>
+    /// <param name="wsAttachPoint"></param>
+    /// <param name="wheelIndex"></param>
+    /// <param name="totalWheelsCount"></param>
+    /// <param name="numberOfPoweredWheels"></param>
     void CalculateWheelForces(Axle axle, Vector3 wsDownDirection, WheelData wheelData, Vector3 wsAttachPoint, int wheelIndex, int totalWheelsCount, int numberOfPoweredWheels)
     {
         float dt = Time.fixedDeltaTime;
@@ -964,7 +1015,7 @@ public class ArcadeCar : MonoBehaviour
         ////////////////////////////////////////////////////////////////////////////////////////////////////
         /// 
 
-        Vector3 wheelVelocity = rb.GetPointVelocity(wheelData.touchPoint.point);
+        Vector3 wheelVelocity = rb.GetPointVelocity(wheelData.touchPoint.point.ToTSVector()).ToVector();
 
         // Contact basis (can be different from wheel basis)
         Vector3 c_up = wheelData.touchPoint.normal;
@@ -977,7 +1028,7 @@ public class ArcadeCar : MonoBehaviour
         Vector3 slideVelocity = (lvel + fvel) * 0.5f;
 
         // Calculate current sliding force
-        Vector3 slidingForce = (slideVelocity * rb.mass / dt) / (float)totalWheelsCount;
+        Vector3 slidingForce = (slideVelocity * rb.mass.AsFloat() / dt) / (float)totalWheelsCount;
 
         if (debugDraw)
         {
@@ -1030,7 +1081,7 @@ public class ArcadeCar : MonoBehaviour
         bool isHandBrakeEnabled = (wheelIndex == WHEEL_LEFT_INDEX) ? axle.handBrakeLeft : axle.handBrakeRight;
         if (isBrakeEnabled || isHandBrakeEnabled)
         {
-            float clampedMag = Mathf.Clamp(axle.brakeForceMag * rb.mass, 0.0f, longitudinalForce.magnitude);
+            float clampedMag = Mathf.Clamp(axle.brakeForceMag * rb.mass.AsFloat(), 0.0f, longitudinalForce.magnitude);
             Vector3 brakeForce = longitudinalForce.normalized * clampedMag;
 
             if (isHandBrakeEnabled)
@@ -1083,7 +1134,12 @@ public class ArcadeCar : MonoBehaviour
 
     }
 
-
+    /// <summary>
+    /// 计算车轴力
+    /// </summary>
+    /// <param name="axle"></param>
+    /// <param name="totalWheelsCount"></param>
+    /// <param name="numberOfPoweredWheels"></param>
     void CalculateAxleForces(Axle axle, int totalWheelsCount, int numberOfPoweredWheels)
     {
         Vector3 wsDownDirection = transform.TransformDirection(Vector3.down);
@@ -1130,10 +1186,12 @@ public class ArcadeCar : MonoBehaviour
 
     }
 
-
+    /// <summary>
+    /// 计算阿克曼转向
+    /// </summary>
     void CalculateAckermannSteering()
     {
-        // Copy desired steering
+        // Copy desired steering 复制所需的转向
         for (int axleIndex = 0; axleIndex < axles.Length; axleIndex++)
         {
             float steerAngleRad = axles[axleIndex].steerAngle * Mathf.Deg2Rad;
@@ -1157,7 +1215,7 @@ public class ArcadeCar : MonoBehaviour
             return;
         }
 
-        // Calculate our chassis (remove scale)
+        // Calculate our chassis (remove scale) 计算我们的底盘(去掉刻度)
         Vector3 axleDiff = transform.TransformPoint(new Vector3(0.0f, frontAxle.offset.y, frontAxle.offset.x)) - transform.TransformPoint(new Vector3(0.0f, rearAxle.offset.y, rearAxle.offset.x));
         float axleSeparation = axleDiff.magnitude;
 
@@ -1166,20 +1224,20 @@ public class ArcadeCar : MonoBehaviour
 
         if (Mathf.Abs(frontAxle.steerAngle) < 0.001f)
         {
-            // Sterring wheels are not turned
+            // Sterring wheels are not turned 尾轮没有转动
             return;
         }
 
-        // Simple right-angled triangle math (find cathet if we know another cathet and angle)
+        // Simple right-angled triangle math (find cathet if we know another cathet and angle) 简单的直角三角形数学(找到导管，如果我们知道另一个导管和角度)
 
-        // Find cathet from cathet and angle
+        // Find cathet from cathet and angle 从导管和角度找到导管
         //
-        // axleSeparation - is first cathet
-        // steerAngle - is angle between cathet and hypotenuse
+        // axleSeparation - is first cathet || axleSeparation -  是第一个导管
+        // steerAngle - is angle between cathet and hypotenuse 转向角  -  是导管和斜边之间的角度
         float rotationCenterOffsetL = axleSeparation / Mathf.Tan(frontAxle.steerAngle * Mathf.Deg2Rad);
 
-        // Now we have another 2 cathet's (rotationCenterOffsetR and axleSeparation for second wheel)
-        //  need to find right angle 
+        // Now we have another 2 cathet's (rotationCenterOffsetR and axleSeparation for second wheel) 现在我们有另外两个导管(第二轮旋转中心偏移和轴切)
+        //  need to find right angle  需要找到直角
         float rotationCenterOffsetR = rotationCenterOffsetL - wheelsSeparation;
 
         float rightWheelYaw = Mathf.Atan(axleSeparation / rotationCenterOffsetR);
@@ -1187,7 +1245,17 @@ public class ArcadeCar : MonoBehaviour
         frontAxle.wheelDataR.yawRad = rightWheelYaw;
     }
 
-
+    /// <summary>
+    /// 计算车轮可视化位置
+    /// </summary>
+    /// <param name="wsAttachPoint"></param>
+    /// <param name="wsDownDirection"></param>
+    /// <param name="axle"></param>
+    /// <param name="data"></param>
+    /// <param name="wheelIndex"></param>
+    /// <param name="visualRotationRad"></param>
+    /// <param name="pos"></param>
+    /// <param name="rot"></param>
     void CalculateWheelVisualTransform(Vector3 wsAttachPoint, Vector3 wsDownDirection, Axle axle, WheelData data, int wheelIndex, float visualRotationRad, out Vector3 pos, out Quaternion rot)
     {
         float suspCurrentLen = Mathf.Clamp01(1.0f - data.compression) * axle.lengthRelaxed;
@@ -1206,6 +1274,12 @@ public class ArcadeCar : MonoBehaviour
         rot = transform.rotation * localWheelRot;
     }
 
+    /// <summary>
+    /// 根据速度计算车轮旋转
+    /// </summary>
+    /// <param name="axle"></param>
+    /// <param name="data"></param>
+    /// <param name="wsPos"></param>
     void CalculateWheelRotationFromSpeed(Axle axle, WheelData data, Vector3 wsPos)
     {
         if (rb == null)
@@ -1219,7 +1293,7 @@ public class ArcadeCar : MonoBehaviour
 
         Vector3 wsWheelForward = wsWheelRot * Vector3.forward;
         Vector3 velocityQueryPos = data.isOnGround ? data.touchPoint.point : wsPos;
-        Vector3 wheelVelocity = rb.GetPointVelocity(velocityQueryPos);
+        Vector3 wheelVelocity = rb.GetPointVelocity(velocityQueryPos.ToTSVector()).ToVector();
         // Longitudinal speed (meters/sec)
         float tireLongSpeed = Vector3.Dot(wheelVelocity, wsWheelForward);
 
@@ -1234,6 +1308,9 @@ public class ArcadeCar : MonoBehaviour
         data.visualRotationRad += deltaRot;
     }
 
+    /// <summary>
+    /// 使用视觉
+    /// </summary>
     void ApplyVisual()
     {
         Vector3 wsDownDirection = transform.TransformDirection(Vector3.down);
@@ -1287,3 +1364,4 @@ public class ArcadeCar : MonoBehaviour
 
 
 }
+

@@ -237,14 +237,12 @@ namespace TrueSync
             var d = TSVector.Distance(rayOrigin, rayOrigin + direction);
             world.CollisionSystem.RaycastAll(rayOrigin, direction, (b, n, f) =>
             {
-                //UnityEngine.Debug.LogWarning($"{maxDistance}   ,   {f}");
                 GameObject other = PhysicsManager.instance.GetGameObject(b);
                 TSRigidBody bodyComponent = other.GetComponent<TSRigidBody>();
                 TSCollider colliderComponent = other.GetComponent<TSCollider>();
                 TSTransform transformComponent = other.GetComponent<TSTransform>();
                 var hit = new TSRaycastHit(bodyComponent, colliderComponent, transformComponent, n, rayOrigin, direction, f);
                 var tmp = TSVector.Distance(hit.point, rayOrigin);
-                Debug.LogWarning($"碰撞的距离{tmp},最大距离{d}");
                 if (tmp <= d)
                 {
                     raycastHits.Add(hit);

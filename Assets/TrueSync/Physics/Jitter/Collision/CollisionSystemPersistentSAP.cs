@@ -693,31 +693,8 @@ namespace TrueSync.Physics3D
         }
 
 
-        //public override void RaycastAll(TSVector rayOrigin, TSVector rayDirection, RaycastCallback raycast, int layerMask)
-        //{
-        //    TSVector tempNormal;
-        //    FP tempFraction;
-        //    foreach (IBroadphaseEntity e in bodyList)
-        //    {
-        //        RigidBody b = e as RigidBody;
-        //        int bodyLayerMask = 1 << PhysicsManager.instance.GetBodyLayer(b);
-        //        if ((layerMask & bodyLayerMask) != bodyLayerMask)
-        //            continue;
-
-        //        if (this.Raycast(b, rayOrigin, rayDirection, out tempNormal, out tempFraction))
-        //        {
-        //            raycast(b, tempNormal, tempFraction);
-        //        }
-        //    }
-        //}
 
 
-        /// <summary>
-        /// Sends a ray (definied by start and direction) through the scene (all bodies added).
-        /// NOTE: For performance reasons terrain and trianglemeshshape aren't checked
-        /// against rays (rays are of infinite length). They are checked against segments
-        /// which start at rayOrigin and end in rayOrigin + rayDirection.
-        /// </summary>
         public override void RaycastAll(TSVector rayOrigin, TSVector rayDirection, RaycastCallback raycast, int layerMask)
         {
             FP fraction = FP.MaxValue;
@@ -725,7 +702,6 @@ namespace TrueSync.Physics3D
             TSVector tempNormal;
             FP tempFraction;
 
-            // TODO: This can be done better in CollisionSystemPersistenSAP
             foreach (IBroadphaseEntity e in bodyList)
             {
                 RigidBody b = e as RigidBody;
@@ -736,7 +712,7 @@ namespace TrueSync.Physics3D
                 if (this.Raycast(b, rayOrigin, rayDirection, out tempNormal, out tempFraction))
                 {
                     raycast(b, tempNormal, tempFraction);
-
+                    UnityEngine.Debug.LogError(tempFraction);
                     if (tempFraction < fraction)
                     {
                         fraction = tempFraction;
